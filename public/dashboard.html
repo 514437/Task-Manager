@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Task Manager</title>
+  <link rel='stylesheet' type='text/css' href='dashboard.css'>
+</head>
+<body>
+  <h1>Welcome to Task Manager</h1>
+  <p id="user-email"></p>
+  <button class="logout-btn" title="Logout of Task Manager" id="logout">Logout</button> 
+
+  <div class="top-bar">
+    <button class="add-btn" title="Add New Task" onclick="openModal()">Add Task</button>
+  </div>
+
+  <div class="search-section task-actions">
+    <input id="searchQuery" placeholder="Search by ID or keyword">
+    <button class="SearchBtn search-refresh-buttons" title="Search for Task" onclick="searchTasks()">Search</button> 
+    <button class="search-refresh-buttons" type="submit" title="Refresh Page" onClick="refreshPage()">Refresh</button>
+  </div>
+
+  <div class="board">
+    <div class="column" id="Tasks Ready"><h2><span class="count" id="count-Tasks Ready">0</span> Tasks Ready</h2></div>
+    <div class="column" id="In Progress"><h2><span class="count" id="count-In Progress">0</span> In Progress</h2></div>
+    <div class="column" id="Needs Review"><h2><span class="count" id="count-Needs Review">0</span> Needs Review</h2></div>
+    <div class="column" id="Done"><h2><span class="count" id="count-Done">0</span> Done</h2></div>
+  </div>
+
+  <!-- Modal -->
+  <div id="taskModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">Task Details</div>
+      <input type="hidden" id="taskId">
+      <input id="title" placeholder="Title"><br>
+      <textarea id="description" placeholder="Description"></textarea><br>
+      <select id="status">
+        <option value="Tasks Ready">Tasks Ready</option>
+        <option value="In Progress">In Progress</option>
+        <option value="Needs Review">Needs Review</option>
+        <option value="Done">Done</option>
+      </select><br>
+      <input id="due_datetime" type="datetime-local"><br>
+      <div class="modal-buttons task-actions">
+        <button class="close-btn" title="Close Popup" onclick="closeModal()">Close</button>
+        <button class="save-btn" title="Save Task" onclick="saveTask()">Save</button>
+      </div>
+    </div>
+  </div>
+  <script type="module" src="./logout.js"></script> 
+  <script>
+  import { supabase } from './supabase.js'
+
+document.getElementById('logout')?.addEventListener('click', async () => {
+  await supabase.auth.signOut()
+  window.location.href = 'index.html'
+})
+  </script>
+  <!--- check if user is logged in or redirect to login -->
+  
+  <!--check if user is logged in or redirect to login-->
+
+  <script>
+
+    const API = '/tasks';
+
+    async function loadTasks() {
+      const res = await fetch(API);
+      const tasks = await res.json();
+      displayTasks(tasks);
+    }
+
+    function refreshPage(){
+    window.location.reload();
+   } 
+
+    function displayTasks(tasks) {
+      const statuses = ["Tasks Ready", "In Progress", "Needs Review", "Done"];
+      statuses.forEach(status => {
+        document.getElementById(status).innerHTML = `<h2>${status}</h2>`;
+      });
+
+      tasks.forEach(task => {
+        const card = document.createElement("div");
+        card.className = "task-card";
+        card.innerHTML = `
+          <h3>${task.title}</h3>
+          <p>${task.description}</p>
+          <div class="task-meta">Due: ${new Date(task.due_datetime).toLocaleString()}</div>
+          <div class="task-meta">ID: ${task.task_id}</div>
+          <div class="task-actions">
+            <button class="copy-btn" title="Copy ID to Clipboard" onclick="copyTaskId('${task.task_id}')">Copy ID</button>
+            <button class="edit-btn" title="Edit Task" onclick="editTask('${task.task_id}')">Edit</button>
+            <button class="delete-btn" title="Delete Task" onclick="deleteTask('${task.task_id}')">Delete</button>
+          </div>
+        `;
+        document.getElementById(task.status)?.appendChild(card);
+      });
+    }
+
+    function openModal() {
+      clearForm();
+      document.getElementById('taskModal').style.display = 'block';
+    }
+
+    function clearForm() {
+        document.getElementById("taskId").value = '';
+        document.getElementById("title").value = '';
+        document.getElementById("description").value = '';
+        document.getElementById("status").value = 'Tasks Ready';
+        document.getElementById("due_datetime").value = '';
+    }
+
+    function closeModal() {
+      document.getElementById('taskModal').style.display = 'none';
+    }
+
+
+    function displayTasks(tasks) {
+  const statuses = ["Tasks Ready", "In Progress", "Needs Review", "Done"];
+  const taskCounts = {};
+
+  // Reset columns and counters
+  statuses.forEach(status => {
+    document.getElementById(status).innerHTML = `<h2><span class="count" id="count-${status}">0</span> ${status} </h2>`;
+    taskCounts[status] = 0;
+  });
+
+  tasks.forEach(task => {
+    const card = document.createElement("div");
+    card.className = "task-card";
+    card.innerHTML = `
+      <h3>${task.title}</h3>
+      <p title="${task.description}">${task.description}</p>
+      <div class="task-meta">Due: ${new Date(task.due_datetime).toLocaleString()}</div>
+      <div class="task-meta">ID: ${task.task_id}</div>
+      <div class="task-actions">
+        <button class="copy-btn" title="Copy ID to Clipboard" onclick="copyTaskId('${task.task_id}')">Copy ID</button>
+        <button class="edit-btn" title="Edit Task" onclick="editTask('${task.task_id}')">Edit</button>
+        <button class="delete-btn" title="Delete Task" onclick="deleteTask('${task.task_id}')">Delete</button>
+      </div>
+    `;
+
+    if (document.getElementById(task.status)) {
+      document.getElementById(task.status).appendChild(card);
+      taskCounts[task.status]++;
+    }
+  });
+
+  // Update counts
+  for (const status of statuses) {
+    document.getElementById(`count-${status}`).textContent = taskCounts[status];
+  }
+}
+
+
+    async function saveTask() {
+      const id = document.getElementById("taskId").value.trim();
+      const dueDateInput = document.getElementById("due_datetime").value;
+      const dueDate = new Date(dueDateInput);
+      const now = new Date();
+
+      if (!dueDateInput || dueDate <= now) {
+        alert("Due date must be in the future.");
+        return;
+      }
+
+      const data = {
+        title: document.getElementById("title").value.trim(),
+        description: document.getElementById("description").value.trim(),
+        status: document.getElementById("status").value,
+        due_datetime: dueDateInput
+      };
+
+      try {
+        if (id) {
+          await fetch(`${API}/${id}`, {
+            method: "PUT",
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+          });
+        } else {
+          await fetch(API, {
+            method: "POST",
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+          });
+        }
+
+        closeModal();
+        loadTasks();
+      } catch (err) { 
+        console.error(err);
+      }
+    }
+
+    async function editTask(id) {
+      try {
+        const res = await fetch(`${API}/${id}`);
+        if (!res.ok) throw new Error("Task not found");
+        const task = await res.json();
+
+        document.getElementById("taskId").value = task.task_id;
+        document.getElementById("title").value = task.title;
+        document.getElementById("description").value = task.description;
+        document.getElementById("status").value = task.status;
+        document.getElementById("due_datetime").value = task.due_datetime;
+
+        document.getElementById('taskModal').style.display = 'block';
+      } catch (err) { 
+        console.error(err);
+      }
+    }
+
+    async function deleteTask(id) {
+      if (confirm("Are you sure you want to delete this task?")) {
+        await fetch(`${API}/${id}`, { method: "DELETE" });
+        loadTasks();
+      }
+    }
+
+    async function searchTasks() {
+      const q = document.getElementById("searchQuery").value.trim();
+      if (!q) return loadTasks();
+
+      const res = await fetch(`/search?q=${q}`);
+      const results = await res.json();
+      displayTasks(results);
+    }
+
+    function copyTaskId(taskId) {
+      navigator.clipboard.writeText(taskId) 
+    }
+
+    window.addEventListener("DOMContentLoaded", () => {
+      loadTasks();
+    });
+
+    window.onclick = function(event) {
+      const modal = document.getElementById("taskModal");
+      if (event.target === modal) {
+        closeModal();
+      }
+    }
+  </script>
+</body>
+</html>

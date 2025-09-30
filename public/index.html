@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sign In | Task Manager</title>
+  <link rel="icon" type="image/x-icon" href="/assets/images/Logo.png" />
+  <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-auth-compat.js"></script>
+  <link rel='stylesheet' type='text/css' href='index.css'>
+</head>
+<body>
+  <div class="login-container"> 
+    <h2>Task Manager</h2>
+    <p>Please sign in to your account</p>
+    <br>
+    <form id="login-form">
+    <input type="email" id="email" placeholder="Email" />
+    <input type="password" id="password" placeholder="Password" />
+    <button class="btn" id="send-link" type="submit" >Sign in</button>
+    </form>
+  <br>
+    <br>
+    <div class="signup-link">
+      <span>Don't have an account? </span>
+      <a href="register.html">Create Account</a>
+  </div>
+  </div>
+  <script type="module" src="./backbutton.js"></script>
+  <script type="module" src="./auth.js"></script>
+</body>
+</html>
